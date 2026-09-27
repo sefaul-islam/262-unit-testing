@@ -92,5 +92,67 @@ public class WalletTest {
 
         assertTrue(receiver.getBalance()== receiverBalance + fundAmount);
     }
+    @Test
+    public void shouldFullTransferFundsTest(){
+        Wallet sender = new Wallet(500);
+        double senderBalance = sender.getBalance();
+        Wallet receiver = new Wallet(200);
+        double receiverBalance = receiver.getBalance();
+        double fundAmount = 500;
+        sender.transferFunds(receiver,fundAmount);
+
+        assertTrue(receiver.getBalance()== receiverBalance + fundAmount);
+    }
+    @Test
+    public void shouldRejectGreaterBalanceTransferFundsTest(){
+        Wallet sender = new Wallet(500);
+        double senderBalance = sender.getBalance();
+        Wallet receiver = new Wallet(200);
+        double receiverBalance = receiver.getBalance();
+        double fundAmount = 1000;
+
+        assertThrows(InsufficientFundsException.class,()->{
+            sender.transferFunds(receiver,fundAmount);
+        });
+        assertTrue(receiver.getBalance()== receiverBalance);
+    }
+    @Test
+    public void shouldRejectNegativeBalanceTransferFundsTest(){
+        Wallet sender = new Wallet(500);
+        double senderBalance = sender.getBalance();
+        Wallet receiver = new Wallet(200);
+        double receiverBalance = receiver.getBalance();
+        double fundAmount = -1000;
+
+        assertThrows(InvalidAmountException.class,()->{
+            sender.transferFunds(receiver,fundAmount);
+        });
+        assertTrue(receiver.getBalance()== receiverBalance);
+    }
+    @Test
+    public void shouldRejectZeroTransferFundsTest(){
+        Wallet sender = new Wallet(500);
+        Wallet receiver = new Wallet(200);
+        double receiverBalance = receiver.getBalance();
+        double fundAmount = 0;
+
+        assertThrows(InvalidAmountException.class,()->{
+            sender.transferFunds(receiver,fundAmount);
+        });
+        assertTrue(receiver.getBalance()== receiverBalance);
+    }
+
+    @Test
+    public void shouldCheckNullRecipient(){
+        Wallet  sender = new Wallet(500);
+        double sendFunds = 100;
+        assertThrows(NullPointerException.class,()->{
+            sender.transferFunds(null,100);
+        });
+        assertEquals(400,sender.getBalance());
+        //Defect 1 even after null exception, the fund gets deducted but as there is
+        //no recipient the funds doesn't get rolled back
+        // no atomicity of funds
+    }
 
 }
