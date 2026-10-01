@@ -16,5 +16,14 @@ public class VehicleTest {
         assertEquals(CAR,vehicle.getVehicleType());
         assertEquals(wallet,vehicle.getWallet());
         assertEquals(500,vehicle.getBalance());
+
+    }
+
+    @Test
+    public void shouldReturnProperToString(){
+        Vehicle vehicle = new Vehicle(1, CAR,500);
+
+        String expected =  "Vehicle{vehicleId=1, vehicleType=CAR, walletBalance=500.0}";
+        assertEquals(expected,vehicle.toString());
     }
 }

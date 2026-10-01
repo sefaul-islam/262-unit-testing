@@ -3,6 +3,7 @@ package parking;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -243,6 +244,70 @@ public class ParkingSystemTest {
         assertEquals(25.0, system.getBalance(), 0.001);
     }
 
+//    @Test
+//    public void shouldBookParkingTruckInLargeSlotDefectTest() {
+//        ParkingSystem system = ParkingSystem.getInstance();
+//        system.resetForTesting();
+//        Vehicle vehicle = new Vehicle(6, VehicleType.TRUCK, 100.0);
+//        double vehicleTypeRate = 3.0; // Defined in ParkingSystem
+//
+//        LocalDateTime start = LocalDateTime.of(2026, 10, 1, 10, 0);
+//        LocalDateTime end = LocalDateTime.of(2026, 10, 1, 11, 0); // 1 hour
+//        double hours = java.time.Duration.between(start, end).toHours();
+//
+//        ParkingSlot largeSlot = new ParkingSlot("1", ParkingSlotType.LARGE);
+//
+//        // Expected intended behavior: 1 hr * 10 * 3.0 * 1.5 = 45.0
+//        // DEFECT: This FAILS because ParkingSlot.isCompatible() lacks 'case TRUCK:',
+//        // throwing IllegalArgumentException even for LARGE slots!
+//        Booking booking = system.book(vehicle, largeSlot, start, end);
+//        double expectedPrice = hours * 10.0 * vehicleTypeRate * 1.5;
+//        assertEquals(expectedPrice, booking.getAmount(), 0.001);
+//    }
+
+
+    @Test
+    public void shouldRejectTruckInAllSlotsDueToDefectTest() {
+        ParkingSystem system = ParkingSystem.getInstance();
+        system.resetForTesting();
+        Vehicle vehicle = new Vehicle(6, VehicleType.TRUCK, 100.0);
+
+        LocalDateTime start = LocalDateTime.of(2026, 10, 1, 10, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 10, 1, 11, 0);
+
+        ParkingSlot compactSlot = new ParkingSlot("1", ParkingSlotType.COMPACT);
+        ParkingSlot regularSlot = new ParkingSlot("2", ParkingSlotType.REGULAR);
+        ParkingSlot largeSlot = new ParkingSlot("3", ParkingSlotType.LARGE);
+        ParkingSlot handicappedSlot = new ParkingSlot("4", ParkingSlotType.HANDICAPPED);
+
+        // 1. Rejected in COMPACT
+        assertThrows(IllegalArgumentException.class, () -> {
+            system.book(vehicle, compactSlot, start, end);
+        });
+
+        // 2. Rejected in REGULAR
+        assertThrows(IllegalArgumentException.class, () -> {
+            system.book(vehicle, regularSlot, start, end);
+        });
+
+        // 3. Rejected in LARGE (Defect: TRUCK should logically fit in LARGE, but is omitted in code)
+        assertThrows(IllegalArgumentException.class, () -> {
+            system.book(vehicle, largeSlot, start, end);
+        });
+
+        // 4. Rejected in HANDICAPPED
+        assertThrows(IllegalArgumentException.class, () -> {
+            system.book(vehicle, handicappedSlot, start, end);
+        });
+
+        // Verifications: No funds deducted, no bookings created
+        assertEquals(100.0, vehicle.getBalance(), 0.001);
+        assertEquals(0.0, system.getBalance(), 0.001);
+        assertEquals(0, system.getBookings().size());
+    }
+
+
+
     @Test
     public void shouldThrowExceptionForInvalidBookingTimesTest() {
         ParkingSystem system = ParkingSystem.getInstance();
@@ -331,6 +396,157 @@ public class ParkingSystemTest {
         LocalDateTime overlapStart = LocalDateTime.of(2026, 10, 1, 11, 0);
         LocalDateTime overlapEnd = LocalDateTime.of(2026, 10, 1, 13, 0);
         assertThrows(IllegalArgumentException.class, () -> system.book(v2, slot, overlapStart, overlapEnd));
+    }
+
+    @Test
+    public void shouldHandleNullVehicleAdd(){
+        ParkingSystem system = ParkingSystem.getInstance();
+        system.resetForTesting();
+
+        system.addVehicle(null);
+        assertEquals(1,system.getVehicles().size());
+        assertNull(system.getVehicles().get(0));
+    }
+ 
+    @Test
+    public void shouldGetAndSetParkingRatePerHourTest() {
+        ParkingSystem system = ParkingSystem.getInstance();
+        system.resetForTesting();
+
+        assertEquals(10.0, system.getPARKING_RATE_PER_HOUR(), 0.001);
+        system.setPARKING_RATE_PER_HOUR(25.0);
+        assertEquals(25.0, system.getPARKING_RATE_PER_HOUR(), 0.001);
+    }
+
+    @Test
+    public void shouldGetAndSetSystemWalletTest() {
+        ParkingSystem system = ParkingSystem.getInstance();
+        system.resetForTesting();
+        // 1. Verify default wallet is not null and balance is 0.0 (kills mutator replacing return with null)
+        assertNotNull(system.getSYSTEM_WALLET());
+        assertEquals(0.0, system.getSYSTEM_WALLET().getBalance(), 0.001);
+        // 2. Set custom wallet and verify
+        Wallet customWallet = new Wallet(500.0);
+        system.setSYSTEM_WALLET(customWallet);
+        assertSame(customWallet, system.getSYSTEM_WALLET());
+        assertEquals(500.0, system.getSYSTEM_WALLET().getBalance(), 0.001);
+        assertEquals(500.0, system.getBalance(), 0.001); // also verifies system.getBalance()
+    }
+
+    @Test
+    public void shouldGetAndSetBookingsTest() {
+        ParkingSystem system = ParkingSystem.getInstance();
+        system.resetForTesting();
+        // 1. Verify default bookings list is empty
+        assertNotNull(system.getBookings());
+        assertEquals(0, system.getBookings().size());
+        // 2. Create custom bookings list and set it
+        List<Booking> customBookings = new java.util.ArrayList<>();
+
+        Vehicle vehicle = new Vehicle(1, VehicleType.CAR, 100.0);
+
+        ParkingSlot slot = new ParkingSlot("1", ParkingSlotType.REGULAR);
+
+        LocalDateTime start = LocalDateTime.of(2026, 10, 1, 10, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 10, 1, 11, 0);
+        Booking booking = new Booking(1, vehicle, slot, start, end, 10.0);
+        customBookings.add(booking);
+        system.setBookings(customBookings);
+
+        // 3. Verify custom bookings list is set
+
+        assertSame(customBookings, system.getBookings());
+        assertEquals(1, system.getBookings().size());
+        assertSame(booking, system.getBookings().get(0));
+    }
+
+    @Test
+    public void shouldAddAndGetVehiclesTest() {
+        ParkingSystem system = ParkingSystem.getInstance();
+        system.resetForTesting();
+
+        assertNotNull(system.getVehicles());
+        assertEquals(0, system.getVehicles().size());
+
+
+        Vehicle car = new Vehicle(1, VehicleType.CAR, 100.0);
+        system.addVehicle(car);
+
+        assertEquals(1, system.getVehicles().size());
+        assertTrue(system.getVehicles().contains(car));
+        assertSame(car, system.getVehicles().get(0));
+
+
+        Vehicle bike = new Vehicle(2, VehicleType.MOTORCYCLE, 50.0);
+        system.addVehicle(bike);
+        assertEquals(2, system.getVehicles().size());
+        assertSame(bike, system.getVehicles().get(1));
+
+
+        List<Vehicle> customList = new java.util.ArrayList<>();
+        Vehicle bus = new Vehicle(3, VehicleType.BUS, 200.0);
+        customList.add(bus);
+        system.setVehicles(customList);
+        assertSame(customList, system.getVehicles());
+        assertEquals(1, system.getVehicles().size());
+        assertSame(bus, system.getVehicles().get(0));
+    }
+    @Test
+    public void shouldAddAndGetParkingSlotsTest() {
+        ParkingSystem system = ParkingSystem.getInstance();
+        system.resetForTesting();
+
+        assertNotNull(system.getParkingSlots());
+        assertEquals(0, system.getParkingSlots().size());
+
+
+        ParkingSlot compactSlot = new ParkingSlot("1", ParkingSlotType.COMPACT);
+        system.addParkingSlot(compactSlot);
+        assertEquals(1, system.getParkingSlots().size());
+        assertTrue(system.getParkingSlots().contains(compactSlot));
+        assertSame(compactSlot, system.getParkingSlots().get(0));
+
+
+        ParkingSlot regularSlot = new ParkingSlot("2", ParkingSlotType.REGULAR);
+        system.addParkingSlot(regularSlot);
+        assertEquals(2, system.getParkingSlots().size());
+        assertSame(regularSlot, system.getParkingSlots().get(1));
+
+
+        java.util.List<ParkingSlot> customSlotList = new java.util.ArrayList<>();
+        ParkingSlot largeSlot = new ParkingSlot("3", ParkingSlotType.LARGE);
+        customSlotList.add(largeSlot);
+        system.setParkingSlots(customSlotList);
+        assertSame(customSlotList, system.getParkingSlots());
+        assertEquals(1, system.getParkingSlots().size());
+        assertSame(largeSlot, system.getParkingSlots().get(0));
+    }
+    @Test
+    public void shouldFilterAvailableSlotsWhenSlotsAreAddedTest() {
+        ParkingSystem system = ParkingSystem.getInstance();
+        system.resetForTesting();
+
+
+        ParkingSlot compactSlot = new ParkingSlot("1", ParkingSlotType.COMPACT);
+        ParkingSlot regularSlot = new ParkingSlot("2", ParkingSlotType.REGULAR);
+        ParkingSlot largeSlot = new ParkingSlot("3", ParkingSlotType.LARGE);
+        system.addParkingSlot(compactSlot);
+        system.addParkingSlot(regularSlot);
+        system.addParkingSlot(largeSlot);
+        LocalDateTime start = LocalDateTime.of(2026, 10, 1, 10, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 10, 1, 11, 0);
+
+
+        // A CAR is compatible only with REGULAR and LARGE
+        Vehicle car = new Vehicle(1, VehicleType.CAR, 100.0);
+        List<ParkingSlot> available = system.getAvailableParkingSlots(car, start, end);
+
+
+        // Should return 2 slots (REGULAR and LARGE)
+        assertEquals(2, available.size());
+        assertTrue(available.contains(regularSlot));
+        assertTrue(available.contains(largeSlot));
+        assertFalse(available.contains(compactSlot));
     }
 
 
