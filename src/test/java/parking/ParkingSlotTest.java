@@ -84,4 +84,5 @@ public class ParkingSlotTest {
                 LocalDateTime.of(2026, 10, 1, 12, 30),
                 LocalDateTime.of(2026, 10, 1, 13, 30)));
     }
+
 }
